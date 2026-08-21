@@ -88,9 +88,9 @@ class DecorationService {
                             break;
                         case RangeRelationship.Past: {
                             const newSubDecoration = currentSubDecorations[subDecorationIndex] = contributions[subDecorationIndex].next().value;
-                            if (determineRelationship(terminus, newSubDecoration.range) === RangeRelationship.Within) {
+                            if (newSubDecoration && determineRelationship(terminus, newSubDecoration.range) === RangeRelationship.Within) {
                                 Object.assign(decoration.style, newSubDecoration.style);
-                                Object.assign(decoration.classNames, subDecoration?.classNames);
+                                Object.assign(decoration.classNames, newSubDecoration.classNames);
                             }
                         }
                     }
