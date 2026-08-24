@@ -2,13 +2,12 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import stylistic from '@stylistic/eslint-plugin';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 import jsdoc from 'eslint-plugin-jsdoc';
 import noNull from 'eslint-plugin-no-null';
 import noUnsanitized from 'eslint-plugin-no-unsanitized';
 import react from 'eslint-plugin-react';
+import tseslint from 'typescript-eslint';
 
 const tsconfigRootDir = dirname(fileURLToPath(import.meta.url));
 const project = {
@@ -88,7 +87,7 @@ export default [
     {
         files: ['**/*.{ts,tsx}'],
         languageOptions: {
-            parser: tsParser,
+            parser: tseslint.parser,
             ecmaVersion: 2015,
             sourceType: 'module',
             parserOptions: {
@@ -101,7 +100,7 @@ export default [
         },
         plugins: {
             '@stylistic': stylistic,
-            '@typescript-eslint': tseslint,
+            '@typescript-eslint': tseslint.plugin,
             import: importPlugin,
             jsdoc,
             'no-null': noNull,
