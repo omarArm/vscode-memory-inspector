@@ -1,40 +1,76 @@
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import stylistic from '@stylistic/eslint-plugin';
 import tseslint from '@typescript-eslint/eslint-plugin';
-import legacyTslint from '@typescript-eslint/eslint-plugin-tslint';
 import tsParser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
+import jsdoc from 'eslint-plugin-jsdoc';
 import noNull from 'eslint-plugin-no-null';
 import noUnsanitized from 'eslint-plugin-no-unsanitized';
 import react from 'eslint-plugin-react';
 
 const tsconfigRootDir = dirname(fileURLToPath(import.meta.url));
-
-// The TSLint bridge still uses RuleContext methods removed by ESLint 10.
-const legacyTslintConfigRule = legacyTslint.rules.config;
-const tslint = {
-    ...legacyTslint,
+const project = {
     rules: {
-        ...legacyTslint.rules,
-        config: {
-            ...legacyTslintConfigRule,
+        'explicit-non-arrow-function-return-type': {
+            meta: {
+                type: 'problem',
+                docs: {
+                    description: 'Require explicit return types on non-arrow functions and methods'
+                },
+                schema: [],
+                messages: {
+                    missing: 'Missing return type on function.'
+                }
+            },
             create(context) {
-                const legacyContext = Object.create(context);
-
-                Object.defineProperties(legacyContext, {
-                    getFilename: {
-                        value: () => context.filename
-                    },
-                    getSourceCode: {
-                        value: () => context.sourceCode
-                    },
-                    parserServices: {
-                        value: context.sourceCode.parserServices
+                const checkReturnType = node => {
+                    if (!node.returnType) {
+                        context.report({
+                            node,
+                            messageId: 'missing'
+                        });
                     }
-                });
+                };
 
-                return legacyTslintConfigRule.create(legacyContext);
+                return {
+                    FunctionDeclaration: checkReturnType,
+                    FunctionExpression(node) {
+                        if (node.parent.type !== 'MethodDefinition' || !['constructor', 'set'].includes(node.parent.kind)) {
+                            checkReturnType(node);
+                        }
+                    },
+                    TSMethodSignature: checkReturnType
+                };
+            }
+        },
+        'license-header': {
+            meta: {
+                type: 'problem',
+                docs: {
+                    description: 'Require the project SPDX license identifier in the leading file comment'
+                },
+                schema: [],
+                messages: {
+                    missing: 'Missing the required SPDX license identifier in the leading file comment.'
+                }
+            },
+            create(context) {
+                return {
+                    Program(node) {
+                        const firstToken = context.sourceCode.getFirstToken(node);
+                        const leadingComments = firstToken ? context.sourceCode.getCommentsBefore(firstToken) : [];
+                        const header = leadingComments[0];
+
+                        if (!header || !/SPDX-License-Identifier: EPL-2\.0 OR GPL-2\.0 WITH Classpath-exception-2\.0/.test(header.value)) {
+                            context.report({
+                                node,
+                                messageId: 'missing'
+                            });
+                        }
+                    }
+                };
             }
         }
     }
@@ -64,11 +100,13 @@ export default [
             }
         },
         plugins: {
+            '@stylistic': stylistic,
             '@typescript-eslint': tseslint,
-            '@typescript-eslint/tslint': tslint,
             import: importPlugin,
+            jsdoc,
             'no-null': noNull,
             'no-unsanitized': noUnsanitized,
+            project,
             react
         },
         rules: {
@@ -144,38 +182,34 @@ export default [
                     exceptions: ['*', '+', '-', '/']
                 }
             ],
-            '@typescript-eslint/tslint/config': [
+            '@stylistic/brace-style': [
                 'error',
+                '1tbs',
                 {
-                    rules: {
-                        'file-header': [
-                            true,
-                            'SPDX-License-Identifier: EPL-2\\.0 OR GPL-2\\.0 WITH Classpath-exception-2\\.0'
-                        ],
-                        'jsdoc-format': [true, 'check-multiline-start'],
-                        'one-line': [
-                            true,
-                            'check-open-brace',
-                            'check-catch',
-                            'check-else',
-                            'check-whitespace'
-                        ],
-                        typedef: [
-                            true,
-                            'call-signature',
-                            'property-declaration'
-                        ],
-                        whitespace: [
-                            true,
-                            'check-branch',
-                            'check-decl',
-                            'check-operator',
-                            'check-separator',
-                            'check-type'
-                        ]
-                    }
+                    allowSingleLine: true
                 }
             ],
+            '@stylistic/comma-spacing': 'error',
+            '@stylistic/keyword-spacing': 'error',
+            '@stylistic/semi-spacing': 'error',
+            '@stylistic/space-infix-ops': 'error',
+            '@stylistic/type-annotation-spacing': 'error',
+            '@typescript-eslint/typedef': [
+                'error',
+                {
+                    propertyDeclaration: true
+                }
+            ],
+            'jsdoc/check-alignment': 'error',
+            'jsdoc/multiline-blocks': [
+                'error',
+                {
+                    noFinalLineText: true,
+                    noZeroLineText: true
+                }
+            ],
+            'project/explicit-non-arrow-function-return-type': 'error',
+            'project/license-header': 'error',
             'import/no-extraneous-dependencies': 'error',
             'import/order': [
                 'error',
